@@ -2,5 +2,6 @@
 
  Authors: Nick Henscheid <nick.henscheid@gmail.com>
  		  Keaton Hamm    <keaton.hamm@uta.edu>
+     Shujie Kang    <shujie.kang@outlook.com>
 
 
