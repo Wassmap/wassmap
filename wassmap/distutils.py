@@ -90,7 +90,7 @@ def geodesic_matrix(dist_matrix,method='eps',k=3,eps=1,plot=False,returngraph=Fa
     N = dist_matrix.shape[0]
 
     if method=='eps':
-        dist_matrix[distance_matrix>eps] = 0
+        dist_matrix[dist_matrix>eps] = 0
         G = nx.from_numpy_array(dist_matrix)
         if(plot==True):
             graphfig,graphax = plt.subplots()
