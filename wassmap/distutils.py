@@ -25,7 +25,24 @@ def uniform_wass_squared(U,V,p=2,Itermax=100000):
     W = ot.emd2(Uwts,Vwts, M,numItermax=Itermax)
     return W
 
-def wass_matrix(image_list,squared=True,p=2.0,geodesic=False,eps=0,plot=False,returngraph=False,method='eps',k=3):
+def uniform_wass_squared_sinkhorn(U, V, p=2, reg = 1):
+    # Assumes that U and V are pointclouds i.e. U = [x1,y1,w1;...;xp,yp,wp] etc
+    Upts = np.ascontiguousarray(U[:,0:2])
+    Vpts = np.ascontiguousarray(V[:,0:2])
+    Uwts = np.ascontiguousarray(U[:,2])
+    Vwts = np.ascontiguousarray(V[:,2])
+    Uwts = Uwts/np.sum(Uwts)
+    Vwts = Vwts/np.sum(Vwts)
+    M = np.power(ot.dist(Upts, Vpts,'euclidean'),p)  # Compute euclidean distance on the pointcloud points
+    #W = ot.emd2(Uwts,Vwts, M,numItermax=Itermax) # Compute exact W_2 distances
+    ## ot.emd2 is the exact linear program function to compute W_2 distances exactly. This is slow.
+    ## The user can substitute other W_2 distance approximations such as ot.sinkhorn or many others
+    ## Example in the following lines
+    #reg = 0.5
+    W = ot.sinkhorn2(Uwts,Vwts, M, reg)
+    return W
+
+def wass_matrix(image_list,squared=True,p=2.0,geodesic=False,eps=0,plot=False,returngraph=False,geomethod='eps',k=3,wassmethod='emd2',sinkhornreg=1):
     """
     The function compute the (squared if squared=True) Wasserstein Distance Matrix between N images
     image_list: python list of pointcloud representations 
@@ -34,7 +51,10 @@ def wass_matrix(image_list,squared=True,p=2.0,geodesic=False,eps=0,plot=False,re
     wass_dist = np.zeros((N,N)) #initialize the distance matrix
     for i in range(N):
         for j in range(i+1,N):
-            wass_dist[i,j] = uniform_wass_squared(image_list[i], image_list[j],p=p)**(1.0/p)
+            if wassmethod=='emd2':
+                wass_dist[i,j] = uniform_wass_squared(image_list[i], image_list[j],p=p)**(1.0/p)
+            elif wassmethod=='sinkhorn': 
+                wass_dist[i,j] = uniform_wass_squared_sinkhorn(image_list[i], image_list[j],p=p,reg = sinkhornreg)**(1.0/p)
     wass_dist += wass_dist.T
 
     if(geodesic==True):
@@ -45,9 +65,9 @@ def wass_matrix(image_list,squared=True,p=2.0,geodesic=False,eps=0,plot=False,re
             histax.hist(distances)
         wass_matrix = np.copy(wass_dist)
         if(returngraph==True):
-            wass_dist,G = geodesic_matrix(wass_matrix,method,k,eps,plot,returngraph=True)
+            wass_dist,G = geodesic_matrix(wass_matrix,geomethod,k,eps,plot,returngraph=True)
         else:
-            wass_dist = geodesic_matrix(wass_matrix,method,k,eps,plot)
+            wass_dist = geodesic_matrix(wass_matrix,geomethod,k,eps,plot)
     if(squared==True):
         wass_dist = np.square(wass_dist) 
     if (geodesic==True&returngraph==True):
